@@ -86,8 +86,11 @@ for nurse in range(nurses):
 e_offset = lagrange_hard_shift * days * workforce(1) ** 2
 e_offset += lagrange_soft_nurse * nurses * duty_days ** 2
 
-### 
+### D-Wave Hybrid call
 bqm = BinaryQuadraticModel.from_qubo(Q, offset=e_offset)
 sampler = LeapHybridSampler()
 results = sampler.sample(bqm)
+
+### Save results with pickle for analysis
+pickle.dump(results, open("results_hybrid.p", "wb"))
 
