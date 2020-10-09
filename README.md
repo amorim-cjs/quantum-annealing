@@ -5,7 +5,7 @@ This repository contains quantum anealling implementations for D-Wave Ocean API 
 They can be run in D-Wave Leap' IDE or locally, according to your preference. 
 
 ## Available examples
-*(currently empty)*
+*Working on Nurse Scheduling Problem reproduction*
 
 ### Notice
 We do **not** have any direct association with D-Wave and their products. Questions about D-Wave services and products should be directed directly to them.
