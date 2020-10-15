@@ -11,6 +11,11 @@
 ##
 
 from dwave.system import LeapHybridSampler
+from dwave.system.samplers import DWaveSampler
+import dwave_networkx as dnx
+import networkx as nx
+from dwave.embedding import embed_bqm, embed_qubo
+from minorminer import find_embedding
 from dimod import BinaryQuadraticModel
 from collections import defaultdict
 from copy import deepcopy
@@ -81,16 +86,30 @@ for nurse in range(nurses):
 
 ## Solve
 ## 解きます
+
+### Graph embedding
+chimera_16 = dnx.chimera_graph(16)
+#pegasus_16 = dnx.pegasus_graph(16)
+G = nx.Graph(Q.keys())
+embedding = find_embedding(G.edges, chimera_16.edges)
+embeddedQ = embed_qubo(Q, embedding, chimera_16)
+
 ### Energy offset
 ### エネルギー オフセット
 e_offset = lagrange_hard_shift * days * workforce(1) ** 2
 e_offset += lagrange_soft_nurse * nurses * duty_days ** 2
 
-### D-Wave Hybrid call
-bqm = BinaryQuadraticModel.from_qubo(Q, offset=e_offset)
-sampler = LeapHybridSampler()
-results = sampler.sample(bqm)
+### D-Wave sampler
+bqm = BinaryQuadraticModel.from_qubo(embeddedQ, offset=e_offset)
+sbqm = BinaryQuadraticModel.from_qubo(Q, offset=e_offset)
+
+#hybrid_sampler = LeapHybridSampler()
+topology = 'chimera' # or pegasus
+sampler = DWaveSampler(solver={'topology__type': topology,'qpu': True})
+results = sampler.sample(bqm, num_reads=10)
 
 ### Save results with pickle for analysis
-pickle.dump(results, open("results_hybrid.p", "wb"))
+fname = "results_%s_N%d_D%d.p" % (topology, nurses, days)
+saveDict = {'results' : results, 'embedding' : embedding, 'bqm': sbqm}
+pickle.dump(saveDict, open(fname, "wb"))
 
