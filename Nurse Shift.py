@@ -93,10 +93,6 @@ for nurses in range(3,5):
         topology = 'pegasus' # 'chimera' or 'pegasus'
         sampler = DWaveSampler(solver={'topology__type': topology,'qpu': True})
         
-        #fname = "results_%s_N%d_D%d_s%d.p" % (topology, nurses, days, numSampling)
-        #previous = pickle.load(open(fname, "rb"))
-        #embedding = previous['embedding']
-        #G = nx.Graph(Q.keys())
         embedding = find_embedding(Q.keys(), sampler.edgelist)
         embeddedQ = embed_qubo(Q, embedding, sampler.adjacency)
 
@@ -105,17 +101,18 @@ for nurses in range(3,5):
         e_offset = lagrange_hard_shift * days * workforce(1) ** 2
         e_offset += lagrange_soft_nurse * nurses * duty_days ** 2
 
-        ### D-Wave sampler
+        ### BQM
         bqm = BinaryQuadraticModel.from_qubo(embeddedQ, offset=e_offset)
         sbqm = BinaryQuadraticModel.from_qubo(Q, offset=e_offset)
 
-        #hybrid_sampler = LeapHybridSampler()
-        
-        #print("Connected to {}.".format(sampler.solver.id))
+        # Sample solution
+        # 解をサンプリングします
+        print("Connected to {}. N = {}, D = {}".format(sampler.solver.id, nurses, days))
         results = sampler.sample(bqm, num_reads=numSampling)
         samples = unembed_sampleset(results, embedding, sbqm, chain_break_fraction=True)
 
-        ### Save results with pickle for analysis
+        ### Save data with pickle for analysis and reverse annealing
+        ### 結果分析と逆アニーリングのため pickle を用いてデータを保存します
         fout = "results_%s_N%d_D%d_s%d.p" % (topology, nurses, days, numSampling)
         saveDict = {'results' : results, 'embedding' : embedding, 'bqm': sbqm, 'samples' : samples}
         pickle.dump(saveDict, open(fout, "wb"))
