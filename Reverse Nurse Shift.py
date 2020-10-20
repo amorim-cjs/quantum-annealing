@@ -24,17 +24,19 @@ import pickle
 ## Setup functions and parameters
 ## 関数とパラメーターを設定します
 ### Reverse annealing schedule
+### 逆アニーリングスケジュール
 s = [1.0, 0.6, 0.6, 1.0]
 t = [0.0, 2.0, 12.0, 14.0]
 schedule = list(zip(t,s))
-reinitialize = False
+reinitialize = True
 
 ### Size parameters
 ### サイズ パラメーター
 numSampling = 1000
 for nurses in range(3,5):
-    for days in range(5,6):
-        #everything below could be a function of `days` and `nurses`
+    for days in range(5,15):
+        # everything below could be a function of `days` and `nurses`
+        # 以下はすべて `days` と `nurses` の関数になり得ます
         size = days * nurses
 
         ### Hard nurse constraint: no nurse on consecutive days
@@ -105,8 +107,6 @@ for nurses in range(3,5):
         initial = previous['results'].first.sample
 
         embedding = previous['embedding']
-        #G = nx.Graph(Q.keys())
-        #embedding = find_embedding(Q.keys(), sampler.edgelist)
         embeddedQ = embed_qubo(Q, embedding, sampler.adjacency)
 
         ### Energy offset
@@ -114,16 +114,19 @@ for nurses in range(3,5):
         e_offset = lagrange_hard_shift * days * workforce(1) ** 2
         e_offset += lagrange_soft_nurse * nurses * duty_days ** 2
 
-        ### D-Wave sampler
+        ### BQM
         bqm = BinaryQuadraticModel.from_qubo(embeddedQ, offset=e_offset)
         sbqm = BinaryQuadraticModel.from_qubo(Q, offset=e_offset)
         
+        # Sample solution
+        # 解をサンプリングします
         print("Connected to {}. N = {}, D = {}".format(sampler.solver.id, nurses, days))
         results = sampler.sample(bqm, num_reads=numSampling, initial_state=initial, reinitialize_state=reinitialize, anneal_schedule=schedule)
         samples = unembed_sampleset(results, embedding, sbqm, chain_break_fraction=True)
 
-        ### Save results with pickle for analysis
-        fout = "reverse_results_%s_N%d_D%d_s%d.p" % (topology, nurses, days, numSampling)
+        ### Save data with pickle for analysis
+        ### 結果分析のため pickle を用いてデータを保存します
+        fout = "reinitialized_reverse_results_%s_N%d_D%d_s%d.p" % (topology, nurses, days, numSampling)
         saveDict = {'results' : results, 'embedding' : embedding, 'bqm': sbqm, 'samples' : samples}
         pickle.dump(saveDict, open(fout, "wb"))
 
